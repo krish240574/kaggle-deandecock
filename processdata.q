@@ -3,20 +3,31 @@ colStr:(count c)#"S";
 .Q.fs[{`train insert flip c!(colStr;",")0:x}]`:ktrain.csv
 train:train[1+til(-1+count train)]
 train:delete Id from train
-/ YearBuilt and LotArea are not categorical
-remCols:select YearBuilt, LotArea, BsmtFinSF1, BsmtUnfSF, TotalBsmtSF from train
-tmp:cols train
-{tmp::tmp[where tmp <> x]}each cols remCols
+/ change 1stFlrSF and 2ndFlrSF to q-type variables
+t:key ft:flip train
+t[where t=`1stFlrSF]:`FstFlrSF
+t[where t=`2ndFlrSF]:`SndFlrSF
+t[where t=`3SsnPorch]:`ThreeSnPorch
+train:flip t!value ft
+/ garbage collect
+.Q.gc[]
+/ Non-categorical columns, not to be passed for one-hot encoding
+remCols:`YearBuilt`YearRemodAdd`LotArea`MasVnrArea`BsmtFinSF1`BsmtFinSF2`BsmtUnfSF`TotalBsmtSF`FstFlrSF`SndFlrSF`LowQualFinSF`GrLivArea`BsmtFullBath`BsmtHalfBath`FullBath`HalfBath`BedroomAbvGr`KitchenAbvGr`TotRmsAbvGrd`Fireplaces`GarageYrBlt`GarageCars`GarageArea`WoodDeckSF`OpenPorchSF`EnclosedPorch`ThreeSnPorch`ScreenPorch`PoolArea`MiscVal`MoSold`YrSold`SalePrice
 
-/ Find all columns with NAs, remove NAs and create a dict with distinct values
-/ in each column
-/e:(tmp)[wk] ! {kna[x;tk[x]]} each til count tk:where each (`NA <>/: kna:k[wk:where  (`NA in/: k:distinct each train[tmp])])
-/k[wk]:e@(tmp)[wk]
-/k:(tmp) ! k
-/i::0
+tmp:cols train
+{tmp::tmp[where tmp <> x]}each remCols
+
+/ Find all categorical columns with NAs, remove NAs and create a dict with distinct values in each column
+e:(tmp)[wk] ! {kna[x;tk[x]]} each til count tk:where each (`NA <>/: kna:k[wk:where  (`NA in/: k:distinct each train[tmp])])
+k[wk]:e@(tmp)[wk]
+k:(tmp) ! k
+i::0
 / Create the one-hot encoded array and append to original dataset
-/{s::((count train),(count r:where each (value k)[x] =\: train[key k][x]))#0;s[r[x];x]:1;train::train,'(({`$((string (key k)[i]),string x)}each (value k)[i])!)each s;i::i+1}each til count k
-/train:![train;();0b;tmp]
-/ Re-append YearBuilt and LotArea to dataset
-train:train,'remCols
-{train[x]:"I"$string train[x]}each cols remCols
+{s::((count train),(count r:where each (value k)[x] =\: train[key k][x]))#0;s[r[x];x]:1;train::train,'(({`$((string (key k)[i]),string x)}each (value k)[i])!)each s;i::i+1}each til count k
+/ Delete original non-one-hot categorical columns
+train:![train;();0b;tmp]
+/ Re-append non-categorical columns
+train:train,'flip remCols ! train[remCols]
+////////// Not needed
+{train[x]:"I"$string train[x]}each remCols
+.Q.gc[]
