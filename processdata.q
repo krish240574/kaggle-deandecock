@@ -3,15 +3,19 @@ colStr:(count c)#"S";
 .Q.fs[{`train insert flip c!(colStr;",")0:x}]`:ktrain.csv
 train:train[1+til(-1+count train)]
 train:delete Id from train
+/ YearBuilt and LotArea are not categorical
+remCols:select YearBuilt, LotArea from train
+tmp:cols train
+tmp:tmp[where (tmp <> `YearBuilt) and (tmp <> `LotArea)]
+
 / Find all columns with NAs, remove NAs and create a dict with distinct values
 / in each column
-e:(cols train)[wk] ! {kna[x;tk[x]]} each til count tk:where each (`NA <>/: kna:k[wk:where  (`NA in/: k:distinct each train[cols train])])
-/ e contains all columns with NAs removed - distinct values
-/ overwrite values in k, the master dict of all column distincts
-k[wk]:e@(cols train)[wk]
-k:(cols train) ! k
-i::0
+/e:(tmp)[wk] ! {kna[x;tk[x]]} each til count tk:where each (`NA <>/: kna:k[wk:where  (`NA in/: k:distinct each train[tmp])])
+/k[wk]:e@(tmp)[wk]
+/k:(tmp) ! k
+/i::0
 / Create the one-hot encoded array and append to original dataset
-{s::((count train),(count r:where each (value k)[x] =\: train[key k][x]))#0;s[r[x];x]:1;train::train,'(({`$((string (key k)[i]),string x)}each (value k)[i])!)each s;i::i+1}each til count k
-/ delete original rows from dataset
-train:![train;();0b;tmp[where tmp<>`LotArea]]
+/{s::((count train),(count r:where each (value k)[x] =\: train[key k][x]))#0;s[r[x];x]:1;train::train,'(({`$((string (key k)[i]),string x)}each (value k)[i])!)each s;i::i+1}each til count k
+/train:![train;();0b;tmp]
+/ Re-append YearBuilt and LotArea to dataset
+train:train,'remCols
