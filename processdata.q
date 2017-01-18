@@ -3,9 +3,6 @@ colStr:(count c)#"S";
 .Q.fs[{`train insert flip c!(colStr;",")0:x}]`:ktrain.csv
 train:train[1+til(-1+count train)]
 train:delete Id from train
-/////////
-///////// TODO - Need to remove the int column - LotArea, to keep as is. 
-////////
 / Find all columns with NAs, remove NAs and create a dict with distinct values
 / in each column
 e:(cols train)[wk] ! {kna[x;tk[x]]} each til count tk:where each (`NA <>/: kna:k[wk:where  (`NA in/: k:distinct each train[cols train])])
@@ -17,4 +14,4 @@ i::0
 / Create the one-hot encoded array and append to original dataset
 {s::((count train),(count r:where each (value k)[x] =\: train[key k][x]))#0;s[r[x];x]:1;train::train,'(({`$((string (key k)[i]),string x)}each (value k)[i])!)each s;i::i+1}each til count k
 / delete original rows from dataset
-train:![train;();0b;tmp]
+train:![train;();0b;tmp[where tmp<>`LotArea]]
