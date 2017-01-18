@@ -4,9 +4,9 @@ colStr:(count c)#"S";
 train:train[1+til(-1+count train)]
 train:delete Id from train
 / YearBuilt and LotArea are not categorical
-remCols:select YearBuilt, LotArea from train
+remCols:select YearBuilt, LotArea, BsmtFinSF1 from train
 tmp:cols train
-tmp:tmp[where (tmp <> `YearBuilt) and (tmp <> `LotArea)]
+{tmp::tmp[where tmp <> x]}each cols remCols
 
 / Find all columns with NAs, remove NAs and create a dict with distinct values
 / in each column
@@ -19,6 +19,6 @@ i::0
 train:![train;();0b;tmp]
 / Re-append YearBuilt and LotArea to dataset
 train:train,'remCols
-train[`LotArea]:"I"$string train[`LotArea]
-train[`YearBuilt]:"I"$string train[`YearBuilt]
+/ Set type of non-categorical data columns to "I"
+{train[x]:"I"$string train[x]}each cols remCols
 
