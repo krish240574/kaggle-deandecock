@@ -19,3 +19,6 @@ i::0
 train:![train;();0b;tmp]
 / Re-append YearBuilt and LotArea to dataset
 train:train,'remCols
+train[`LotArea]:"I"$string train[`LotArea]
+train[`YearBuilt]:"I"$string train[`YearBuilt]
+
