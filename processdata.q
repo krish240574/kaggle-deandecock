@@ -10,12 +10,12 @@ tmp:tmp[where (tmp <> `YearBuilt) and (tmp <> `LotArea)]
 
 / Find all columns with NAs, remove NAs and create a dict with distinct values
 / in each column
-/e:(tmp)[wk] ! {kna[x;tk[x]]} each til count tk:where each (`NA <>/: kna:k[wk:where  (`NA in/: k:distinct each train[tmp])])
-/k[wk]:e@(tmp)[wk]
-/k:(tmp) ! k
-/i::0
+e:(tmp)[wk] ! {kna[x;tk[x]]} each til count tk:where each (`NA <>/: kna:k[wk:where  (`NA in/: k:distinct each train[tmp])])
+k[wk]:e@(tmp)[wk]
+k:(tmp) ! k
+i::0
 / Create the one-hot encoded array and append to original dataset
-/{s::((count train),(count r:where each (value k)[x] =\: train[key k][x]))#0;s[r[x];x]:1;train::train,'(({`$((string (key k)[i]),string x)}each (value k)[i])!)each s;i::i+1}each til count k
-/train:![train;();0b;tmp]
+{s::((count train),(count r:where each (value k)[x] =\: train[key k][x]))#0;s[r[x];x]:1;train::train,'(({`$((string (key k)[i]),string x)}each (value k)[i])!)each s;i::i+1}each til count k
+train:![train;();0b;tmp]
 / Re-append YearBuilt and LotArea to dataset
 train:train,'remCols
