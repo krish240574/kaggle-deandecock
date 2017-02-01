@@ -1,9 +1,8 @@
-
 rgd:{[w;f;op;tl;s;counter]
    d:(2*(flip f)$((f$w)-op))+(2*l2_p*w); / L2 - ridge regression derivative
    gm:sqrt sum (d*d);
    $[(counter<niter);rgd[w-(s*d);f;op;tl;s;counter+1]; w]} ;
-
+/ Process data - for both train and test
 pd:{[tf]
         ds::ds[1+til(-1+count ds)];
         ds::delete Id from ds;
@@ -35,7 +34,10 @@ pd:{[tf]
         while[i<count k;
                 ds::ds,'((`$( string (key k)[i]) ,/: string (value k)[i])!)each s:((count ds),(count r:where each (value k)[i] =\: ds[key k][i]))#0;s[r[i];i]:1;i:i+1;
         ]; / end stinking loop
-
+///// commented
+/        Create the one-hot encoded array and append to original dataset
+/       {s::((count ds),(count r:where each (value k)[x] =\: ds[key k][x]))#0;s[r[x];x]:1;ds::ds,'(({`$((string (key k)[i]),string x)}each (value k)[i])!)each s;i::i+1}each til count k;
+///// commented
 /        Delete original non-one-hot categorical columns
         ds::![ds;();0b;tmp];
         / Re-append non-categorical columns
@@ -43,7 +45,7 @@ pd:{[tf]
         ////////// Not needed
         {ds[x]::"I"$string ds[x]}each remCols ;
         $[tf like "train";train::ds;test::ds]}; / end function
-/ -----------------------------------train data set 
+/ -----------------------------------train data set
 c:`Id`MSSubClass`MSZoning`LotFrontage`LotArea`Street`Alley`LotShape`LandContour`Utilities`LotConfig`LandSlope`Neighborhood`Condition1`Condition2`BldgType`HouseStyle`OverallQual`OverallCond`YearBuilt`YearRemodAdd`RoofStyle`RoofMatl`Exterior1st`Exterior2nd`MasVnrType`MasVnrArea`ExterQual`ExterCond`Foundation`BsmtQual`BsmtCond`BsmtExposure`BsmtFinType1`BsmtFinSF1`BsmtFinType2`BsmtFinSF2`BsmtUnfSF`TotalBsmtSF`Heating`HeatingQC`CentralAir`Electrical`1stFlrSF`2ndFlrSF`LowQualFinSF`GrLivArea`BsmtFullBath`BsmtHalfBath`FullBath`HalfBath`BedroomAbvGr`KitchenAbvGr`KitchenQual`TotRmsAbvGrd`Functional`Fireplaces`FireplaceQu`GarageType`GarageYrBlt`GarageFinish`GarageCars`GarageArea`GarageQual`GarageCond`PavedDrive`WoodDeckSF`OpenPorchSF`EnclosedPorch`3SsnPorch`ScreenPorch`PoolArea`PoolQC`Fence`MiscFeature`MiscVal`MoSold`YrSold`SaleType`SaleCondition`SalePrice;
 colStr:(count c)#"S";
 .Q.fs[{`train insert flip c!(colStr;",")0:x}]`:ktrain.csv;
@@ -65,7 +67,7 @@ l2_p:0.0;
 counter:0;
 niter:100;
 show "Calling rgd";
- kw:rgd[w;f;op;tl;s;counter];
+kw:rgd[w;f;op;tl;s;counter];
 
 / ---------------Process test data -----------------------------------------
 tf:"test";
@@ -73,6 +75,8 @@ c:c[where c<>`SalePrice];
 colStr:(count c)#"S";
 .Q.fs[{`test insert flip c!(colStr;",")0:x}]`:test.csv;
 ds:test;
+testId:test[`Id];
+testId:testId[1+til (-1+count testId)];
 pd[tf];
 
 / ---------------Run regression model with trained weights on test data
@@ -85,4 +89,4 @@ f:"f"$test[cls]
 f:{0^f[;x]}each til count f[0];
 o:f$h;
 show "Outputs :";
-show o;
+show op:([]Id:testId;SalePrice:o);
