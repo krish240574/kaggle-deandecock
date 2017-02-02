@@ -1,8 +1,41 @@
+lasso:{[i]
+      / Cycle through each weight
+      / calculate ro, for each weight
+      / update weight by lambda rule
+      oldwt:sum w[i];
+      
+      prediction:0^raze f$w;
+      temp:(((count f),1)#f[;i])$(1,1)#w[i];
+      roi:sum over(f[;i]*(op-prediction+temp));
+/      newweighti:0.0;
+      if[i = 0;newweighti:roi];
+      if[i>0;if[roi<(-1*l1penalty)%2.0;show "lt";newweighti:roi+(l1penalty%2.0)]; if[roi>(l1penalty%2.0);show "gt";newweighti:roi-(l1penalty%2.0)];if[(roi>=(-1*l1penalty)%2.0) and (roi<=(l1penalty%2.0));newweighti:0.0]] ;
+
+	/ update weight[i]
+	t:raze over w;
+	t[i]:"f"$newweighti;	
+	w::(shape w)#t;
+      show oldwt-newweighti;
+      if[(oldwt-newweighti)<tolerance;ctr::ctr+1];
+      if[i<(-1+count w);lasso[i+1]];
+      };
+ctr:0;
+lassodriver:{
+  show "lasso";
+	while[ctr<count w;
+			ctr::0;
+  		lasso[0];
+		show "Counter =======================================";
+		show ctr;
+		show "Counter =======================================";
+	]; /end while
+ };
+
 rgd:{[w;f;op;tl;s;counter]
    d:(2*(flip f)$((f$w)-op))+(2*l2_p*w); / L2 - ridge regression derivative
    gm:sqrt sum (d*d);
    $[(counter<niter);rgd[w-(s*d);f;op;tl;s;counter+1]; w]} ;
-/ Process data - for both train and test
+
 pd:{[tf]
         ds::ds[1+til(-1+count ds)];
         ds::delete Id from ds;
@@ -45,7 +78,7 @@ pd:{[tf]
         ////////// Not needed
         {ds[x]::"I"$string ds[x]}each remCols ;
         $[tf like "train";train::ds;test::ds]}; / end function
-/ -----------------------------------train data set
+/ -----------------------------------train data set 
 c:`Id`MSSubClass`MSZoning`LotFrontage`LotArea`Street`Alley`LotShape`LandContour`Utilities`LotConfig`LandSlope`Neighborhood`Condition1`Condition2`BldgType`HouseStyle`OverallQual`OverallCond`YearBuilt`YearRemodAdd`RoofStyle`RoofMatl`Exterior1st`Exterior2nd`MasVnrType`MasVnrArea`ExterQual`ExterCond`Foundation`BsmtQual`BsmtCond`BsmtExposure`BsmtFinType1`BsmtFinSF1`BsmtFinType2`BsmtFinSF2`BsmtUnfSF`TotalBsmtSF`Heating`HeatingQC`CentralAir`Electrical`1stFlrSF`2ndFlrSF`LowQualFinSF`GrLivArea`BsmtFullBath`BsmtHalfBath`FullBath`HalfBath`BedroomAbvGr`KitchenAbvGr`KitchenQual`TotRmsAbvGrd`Functional`Fireplaces`FireplaceQu`GarageType`GarageYrBlt`GarageFinish`GarageCars`GarageArea`GarageQual`GarageCond`PavedDrive`WoodDeckSF`OpenPorchSF`EnclosedPorch`3SsnPorch`ScreenPorch`PoolArea`PoolQC`Fence`MiscFeature`MiscVal`MoSold`YrSold`SaleType`SaleCondition`SalePrice;
 colStr:(count c)#"S";
 .Q.fs[{`train insert flip c!(colStr;",")0:x}]`:ktrain.csv;
@@ -58,16 +91,21 @@ pd[tf];
 train:([]intercept:(count train)#1.0),'train
 cls:cols train;
 f:"f"$train[cls[where (cls<>`SalePrice)]];
+f:f%\:sqrt sum f*f
 f:{0^f[;x]}each til count f[0];
-w:"f"$((count f[0]),1)#-1000.0,(-1+count f[0])#1.0
+/w:"f"$((count f[0]),1)#100000.0,(-1+count f[0])#1.0
+w:"f"$((count f[0]),1)#0.0
 op:"f"$train[`SalePrice];
 tl:"f"$1.0e+009;
 s:"f"$1.0e-12;
 l2_p:0.0;
 counter:0;
 niter:100;
+l1penalty:1e+7;
+tolerance:100.0;
 show "Calling rgd";
-kw:rgd[w;f;op;tl;s;counter];
+/kw:rgd[w;f;op;tl;s;counter];
+lassodriver[]
 
 / ---------------Process test data -----------------------------------------
 tf:"test";
@@ -83,10 +121,11 @@ pd[tf];
 test:([]intercept:(count test)#1.0),'test
 cls:cols test;
 l:cols train;
-wts:kw[{where x=l}each cls]
+wts:w[{where x=l}each cls]
 h:((count cls),1)# raze over (cls!wts)@cls
 f:"f"$test[cls]
 f:{0^f[;x]}each til count f[0];
+f:f%\:sqrt sum f*f
 o:f$h;
 show "Outputs :";
 show op:([]Id:testId;SalePrice:o);
