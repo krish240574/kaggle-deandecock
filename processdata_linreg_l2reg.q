@@ -7,27 +7,25 @@ lasso:{[i]
       prediction:0^raze f$w;
       temp:(((count f),1)#f[;i])$(1,1)#w[i];
       roi:sum over(f[;i]*(op-prediction+temp));
-/      newweighti:0.0;
+      newweighti:0.0;
       if[i = 0;newweighti:roi];
-      if[i>0;if[roi<(-1*l1penalty)%2.0;show "lt";newweighti:roi+(l1penalty%2.0)]; if[roi>(l1penalty%2.0);show "gt";newweighti:roi-(l1penalty%2.0)];if[(roi>=(-1*l1penalty)%2.0) and (roi<=(l1penalty%2.0));newweighti:0.0]] ;
-
-	/ update weight[i]
-	t:raze over w;
-	t[i]:"f"$newweighti;	
-	w::(shape w)#t;
-      show oldwt-newweighti;
-      if[(oldwt-newweighti)<tolerance;ctr::ctr+1];
+      if[i>0;if[roi<(-1*l1penalty)%2.0;newweighti:roi+(l1penalty%2.0)]; if[roi>(l1penalty%2.0);newweighti:roi-(l1penalty%2.0)];if[(roi>=(-1*l1penalty)%2.0) and (roi<=(l1penalty%2.0));newweighti:0.0]] ;
+			w[i;]::newweighti;
+      if[(sum oldwt-w[i])<tolerance;ctr::ctr+1];
       if[i<(-1+count w);lasso[i+1]];
       };
 ctr:0;
 lassodriver:{
   show "lasso";
-	while[ctr<count w;
+	kumar:0;
+	while[(ctr<count w) and (kumar<10);
 			ctr::0;
   		lasso[0];
 		show "Counter =======================================";
 		show ctr;
 		show "Counter =======================================";
+		show raze w;
+		kumar:kumar+1;
 	]; /end while
  };
 
@@ -51,10 +49,9 @@ pd:{[tf]
         remCols:`YearBuilt`YearRemodAdd`LotArea`MasVnrArea`BsmtFinSF1`BsmtFinSF2`BsmtUnfSF`TotalBsmtSF`FstFlrSF`SndFlrSF`LowQualFinSF`GrLivArea`BsmtFullBath`BsmtHalfBath`FullBath`HalfBath`BedroomAbvGr`KitchenAbvGr`TotRmsAbvGrd`Fireplaces`GarageYrBlt`GarageCars`GarageArea`WoodDeckSF`OpenPorchSF`EnclosedPorch`ThreeSnPorch`ScreenPorch`PoolArea`MiscVal`MoSold`YrSold`SalePrice;
         if[tf like "test";remCols:remCols[where remCols<>`SalePrice]];
 / Remove all non-cat columns from list, so we're sending only
-/ non-cats to one-hot
+/ cats to one-hot
         tmp:cols ds;
         tmp:tmp[ where not  tmp in\: remCols];
-/       {tmp::tmp[where tmp <> x]}each remCols;
 
         / Find all categorical columns with NAs, remove NAs and create a dict with distinct values in each column
         kna:k[wk:where  (`NA in/: k:distinct each ds[tmp])];
@@ -77,6 +74,7 @@ pd:{[tf]
         ds::ds,'flip remCols ! ds[remCols];
         ////////// Not needed
         {ds[x]::"I"$string ds[x]}each remCols ;
+/	ds[remCols]::ds[remCols]%\:sqrt sum ds[remCols]*ds[remCols];
         $[tf like "train";train::ds;test::ds]}; / end function
 / -----------------------------------train data set 
 c:`Id`MSSubClass`MSZoning`LotFrontage`LotArea`Street`Alley`LotShape`LandContour`Utilities`LotConfig`LandSlope`Neighborhood`Condition1`Condition2`BldgType`HouseStyle`OverallQual`OverallCond`YearBuilt`YearRemodAdd`RoofStyle`RoofMatl`Exterior1st`Exterior2nd`MasVnrType`MasVnrArea`ExterQual`ExterCond`Foundation`BsmtQual`BsmtCond`BsmtExposure`BsmtFinType1`BsmtFinSF1`BsmtFinType2`BsmtFinSF2`BsmtUnfSF`TotalBsmtSF`Heating`HeatingQC`CentralAir`Electrical`1stFlrSF`2ndFlrSF`LowQualFinSF`GrLivArea`BsmtFullBath`BsmtHalfBath`FullBath`HalfBath`BedroomAbvGr`KitchenAbvGr`KitchenQual`TotRmsAbvGrd`Functional`Fireplaces`FireplaceQu`GarageType`GarageYrBlt`GarageFinish`GarageCars`GarageArea`GarageQual`GarageCond`PavedDrive`WoodDeckSF`OpenPorchSF`EnclosedPorch`3SsnPorch`ScreenPorch`PoolArea`PoolQC`Fence`MiscFeature`MiscVal`MoSold`YrSold`SaleType`SaleCondition`SalePrice;
@@ -90,19 +88,20 @@ pd[tf];
 / Start training regression model
 train:([]intercept:(count train)#1.0),'train
 cls:cols train;
-f:"f"$train[cls[where (cls<>`SalePrice)]];
-f:f%\:sqrt sum f*f
+f:"f"$train[cls[where (cls<>`SalePrice) and (cls <> `YearBuilt) and (cls <> `YearRemodAdd) and (cls <> `YrSold)]];
 f:{0^f[;x]}each til count f[0];
-/w:"f"$((count f[0]),1)#100000.0,(-1+count f[0])#1.0
-w:"f"$((count f[0]),1)#0.0
+f:f%\:norms:sqrt sum f*f
+w:"f"$((count f[0]),1)#(-1000000000.0%5.75),(-1+count f[0])#0.0;
+/w:"f"$((count f[0]),1)#(count f[0])?100.0;
+/w:"f"$((count f[0]),1)#0.0;
 op:"f"$train[`SalePrice];
 tl:"f"$1.0e+009;
 s:"f"$1.0e-12;
 l2_p:0.0;
 counter:0;
 niter:100;
-l1penalty:1e+7;
-tolerance:100.0;
+l1penalty:1e+7
+tolerance:1.0;
 show "Calling rgd";
 /kw:rgd[w;f;op;tl;s;counter];
 lassodriver[]
@@ -119,13 +118,15 @@ pd[tf];
 
 / ---------------Run regression model with trained weights on test data
 test:([]intercept:(count test)#1.0),'test
-cls:cols test;
 l:cols train;
-wts:w[{where x=l}each cls]
+cls:l[raze where each l =\: cols test];
+wts:w[raze where each l =\: cols test];
+/norms:raze norms[{where x=l}each cls]
 h:((count cls),1)# raze over (cls!wts)@cls
 f:"f"$test[cls]
 f:{0^f[;x]}each til count f[0];
-f:f%\:sqrt sum f*f
-o:f$h;
+f:f%\:sum sqrt f*f;
+f:{0^f[;x]}each til count f[0];
+o:(flip f)$h;
 show "Outputs :";
 show op:([]Id:testId;SalePrice:o);
