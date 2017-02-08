@@ -11,7 +11,7 @@ lasso:{[i]
       newweighti:0.0;
       if[i = 0;newweighti:roi];
       if[i>0;if[roi<(-1*l1penalty)%2.0;newweighti:roi+(l1penalty%2.0)]; if[roi>(l1penalty%2.0);newweighti:roi-(l1penalty%2.0)];if[(roi>=(-1*l1penalty)%2.0) and (roi<=(l1penalty%2.0));newweighti:0.0]] ;
-	    w[i;]::newweighti;
+	w[i;]::newweighti;
       if[(sum oldwt-w[i])<tolerance;ctr::ctr+1];
       if[i<(-1+count w);lasso[i+1]];
       };
@@ -92,21 +92,28 @@ f:"f"$train[cls[where (cls<>`SalePrice)]];
 / Remove null values - this flips the dataset to the correct dimensions. 
 f:{0^f[;x]}each til count f[0];
 / Normalize features. 
-f:f%\:norms:sqrt sum f*f
+f:f%\:sqrt sum f*f;
 w:"f"$((count f[0]),1)#(-1000000000.0%5.75),(-1+count f[0])#0.0;
 /w:"f"$((count f[0]),1)#(count f[0])?100.0;
 /w:"f"$((count f[0]),1)#0.0;
 op:"f"$train[`SalePrice];
-tl:"f"$1.0e+009;
-s:"f"$1.0e-12;
-l2_p:0.0;
-counter:0;
-niter:100;
-l1penalty:1e+7
+/ open this code for L2 - and comment L1 code above. 
+/ L2 parameters
+/tl:"f"$1.0e+009; / tolerance
+/s:"f"$1.0e-12; / step size
+/l2_p:0.0; / l2 penalty(lambda)
+/counter:0;
+/niter:100;
+/show "Calling rgd";
+/rgd[f;op;tl;s;counter];
+/ L2 code ends
+
+/ Code for L1 - lasso
+/ L1 parameters
+l1penalty:1e+7;
 tolerance:1.0;
-show "Calling rgd";
-/kw:rgd[w;f;op;tl;s;counter];
 lassodriver[]
+/ L1 code ends. 
 
 / ---------------Process test data -----------------------------------------
 tf:"test";
@@ -122,10 +129,11 @@ test:([]intercept:(count test)#1.0),'test
 l:cols train;
 cls:l[raze where each l =\: cols test];
 wts:w[raze where each l =\: cols test];
-/norms:raze norms[{where x=l}each cls]
 h:((count cls),1)# raze over (cls!wts)@cls
 f:"f"$test[cls]
+/ Remove null values
 f:{0^f[;x]}each til count f[0];
+/ Normalize values
 f:f%\:sum sqrt f*f;
 f:{0^f[;x]}each til count f[0];
 o:(flip f)$h;
