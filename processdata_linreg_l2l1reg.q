@@ -11,7 +11,7 @@ lasso:{[i]
       newweighti:0.0;
       if[i = 0;newweighti:roi];
       if[i>0;if[roi<(-1*l1penalty)%2.0;newweighti:roi+(l1penalty%2.0)]; if[roi>(l1penalty%2.0);newweighti:roi-(l1penalty%2.0)];if[(roi>=(-1*l1penalty)%2.0) and (roi<=(l1penalty%2.0));newweighti:0.0]] ;
-	w[i;]::newweighti;
+	    w[i;]::newweighti;
       if[(sum oldwt-w[i])<tolerance;ctr::ctr+1];
       if[i<(-1+count w);lasso[i+1]];
       };
@@ -31,13 +31,16 @@ lassodriver:{
  };
 
 / Ridge, L2 regression
-rgd:{[w;f;op;tl;s;counter]
+rgd:{[f;op;tl;s;counter]
+	while[counter<niter;	
    d:(2*(flip f)$((f$w)-op))+(2*l2_p*w); / L2 - ridge regression derivative
    gm:sqrt sum (d*d);
-   $[(counter<niter);rgd[w-(s*d);f;op;tl;s;counter+1]; w]} ;
+	 w::w-s*d;
+	 counter:counter+1;
+	 ];  / End while loop
+	};
 
 pd:{[tf]
-        ds::ds[1+til(-1+count ds)];
         ds::delete Id from ds;
         / change 1stFlrSF and 2ndFlrSF to q-type variables
         t:key ft:flip ds;
@@ -112,7 +115,6 @@ colStr:(count c)#"S";
 .Q.fs[{`test insert flip c!(colStr;",")0:x}]`:test.csv;
 ds:test;
 testId:test[`Id];
-testId:testId[1+til (-1+count testId)];
 pd[tf];
 
 / ---------------Run regression model with trained weights on test data
@@ -129,3 +131,4 @@ f:{0^f[;x]}each til count f[0];
 o:(flip f)$h;
 show "Outputs :";
 show op:([]Id:testId;SalePrice:o);
+
