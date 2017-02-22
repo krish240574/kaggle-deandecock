@@ -61,25 +61,31 @@ pd:{[tf]
         / Find all categorical columns with NAs, remove NAs and create a dict with distinct values in each column
         kna:k[wk:where  (`NA in/: k:distinct each ds[tmp])];
         t:0,(+\)t[til(-1+count t:count each where each `NA <> kna)];
+
         rkna:raze kna;
         e:(tmp)[wk] ! t cut rkna:rkna[where rkna <> `NA];
         k[wk]:e@(tmp)[wk];
         k:(tmp) ! k;
+
         i:0;
         while[i<count k;
-                ds::ds,'((`$( string (key k)[i]) ,/: string (value k)[i])!)each s:((count ds),(count r:where each (value k)[i] =\: ds[key k][i]))#0;s[r[i];i]:1;i:i+1;
+                ds::ds,'((`$( string (key k)[i]) ,/: string (value k)[i])!)each s:((count ds),(count r:where each (value k)[i] =\: ds[key k][i]))#0;
+                s[r[i];i]:1;
+                i:i+1;
         ]; / end stinking loop
 /        Delete original non-one-hot categorical columns
         ds::![ds;();0b;tmp];
+
         / Re-append non-categorical columns
         ds::ds,'flip remCols ! ds[remCols];
 	/ Re-type cast all int columns - could have read as "I" too, in Q.fs
-        {ds[x]::"I"$string ds[x]}each remCols ;
+        / {ds[x]::"I"$string ds[x]}each remCols ;
         $[tf like "train";train::ds;test::ds]}; / end function
 / -----------------------------------train data set 
 c:`Id`MSSubClass`MSZoning`LotFrontage`LotArea`Street`Alley`LotShape`LandContour`Utilities`LotConfig`LandSlope`Neighborhood`Condition1`Condition2`BldgType`HouseStyle`OverallQual`OverallCond`YearBuilt`YearRemodAdd`RoofStyle`RoofMatl`Exterior1st`Exterior2nd`MasVnrType`MasVnrArea`ExterQual`ExterCond`Foundation`BsmtQual`BsmtCond`BsmtExposure`BsmtFinType1`BsmtFinSF1`BsmtFinType2`BsmtFinSF2`BsmtUnfSF`TotalBsmtSF`Heating`HeatingQC`CentralAir`Electrical`1stFlrSF`2ndFlrSF`LowQualFinSF`GrLivArea`BsmtFullBath`BsmtHalfBath`FullBath`HalfBath`BedroomAbvGr`KitchenAbvGr`KitchenQual`TotRmsAbvGrd`Functional`Fireplaces`FireplaceQu`GarageType`GarageYrBlt`GarageFinish`GarageCars`GarageArea`GarageQual`GarageCond`PavedDrive`WoodDeckSF`OpenPorchSF`EnclosedPorch`3SsnPorch`ScreenPorch`PoolArea`PoolQC`Fence`MiscFeature`MiscVal`MoSold`YrSold`SaleType`SaleCondition`SalePrice;
-colStr:(count c)#"S";
-.Q.fs[{`train insert flip c!(colStr;",")0:x}]`:train.csv;
+/ colStr:(count c)#"S";
+colStr:"SSSSISSSSSSSSSSSSSSIISSSSSISSSSSSSISIIISSSSIIIIIIIIIISISISSISIISSSIIIIIISSSIIISSI";
+.Q.fs[{`train insert flip c!(colStr;",")0:x}]`:ktrain.csv;
 tf:"train";
 ds:train;
 pd[tf];
@@ -96,8 +102,8 @@ f:f%\:sqrt sum f*f;
 w:"f"$((count f[0]),1)#(-1000000000.0%5.75),(-1+count f[0])#0.0;
 /w:"f"$((count f[0]),1)#(count f[0])?100.0;
 /w:"f"$((count f[0]),1)#0.0;
-op:"f"$train[`SalePrice];
-/ open this code for L2 - and comment L1 code above. 
+op:0^"f"$train[`SalePrice];
+/ open this code for L2
 / L2 parameters
 /tl:"f"$1.0e+009; / tolerance
 /s:"f"$1.0e-12; / step size
