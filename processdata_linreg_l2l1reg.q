@@ -141,7 +141,6 @@ f:"f"$test[cls]
 f:{0^f[;x]}each til count f[0];
 / Normalize values
 f:f%\:sum sqrt f*f;
-f:{0^f[;x]}each til count f[0];
 o:(flip f)$h;
 show "Outputs :";
 show op:([]Id:testId;SalePrice:o);
