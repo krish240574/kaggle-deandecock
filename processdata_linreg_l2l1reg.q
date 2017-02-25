@@ -1,5 +1,3 @@
-/1021903084
-
 / Lasso regression, using co-ordinate descent. 
 lasso:{[i]
       / Cycle through each weight
