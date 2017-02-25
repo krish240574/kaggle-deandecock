@@ -29,12 +29,6 @@ lassodriver:{
 
 / Ridge, L2 regression
 rgd:{[f;op;tl;s;counter]
-	/ while[counter<niter;	
- /   d:(2*(flip f)$((f$w)-op))+(2*l2_p*w); / L2 - ridge regression derivative
- /   / gm:sqrt sum (d*d);
-	/  w::w-s*d;
-	/  counter:counter+1;
-	/  ];  / End while loop
     niter {w::w-s*((2*(flip f)$((f$w)-op))+(2*l2_p*w))}\counter;
 	};
 
@@ -68,7 +62,7 @@ pd:{[tf]
                 ds::ds,'((`$( string (key k)[i]) ,/: string (value k)[i])!)each s:((count ds),(count r:where each (value k)[i] =\: ds[key k][i]))#0;
                 s[r[i];i]:1;
                 i:i+1;
-        ]; / end stinking loop
+        ]; / end while loop
 /        Delete original non-one-hot categorical columns
         ds::![ds;();0b;tmp];
 
@@ -120,10 +114,8 @@ finaloutput:{[flag]
   cls:l[k];
   wts:w[k];
   h:((count cls),1)# raze over (cls!wts)@cls;
+  / Choose columns from test and remove null values
   f:flip 0f^/:"f"$test[cls];
-  / / Remove null values - this flips table to right dimensions
-  / f::{0^f[;x]}each til count f[0];
-  / Normalize values for lasso
   if[flag=1;f:0f^f%\:sum sqrt f*f];
   o:f$h;
   show "Outputs :";
